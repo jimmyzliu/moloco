@@ -106,6 +106,7 @@ def gather_assocs(in_files,chrom,start,stop):
   bad_snps = [snp for snp in assoc_dict if len(assoc_dict[snp]) != n_files]
   for snp in bad_snps:
     del assoc_dict[snp]
+  print "Found " + str(len(assoc_dict)) + " SNPs common to all " + str(n_files) + " traits"
   return assoc_dict
 
 def adjust_bfs(assoc_dict,configs,n_files,in_files):
