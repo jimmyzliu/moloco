@@ -15,6 +15,7 @@
 import gzip
 import itertools
 import math
+import os
 import numpy as np
 import string
 import sys
@@ -106,25 +107,27 @@ def gather_assocs(in_files,chrom,start,stop):
   bad_snps = [snp for snp in assoc_dict if len(assoc_dict[snp]) != n_files]
   for snp in bad_snps:
     del assoc_dict[snp]
-  print "Found " + str(len(assoc_dict)) + " SNPs common to all " + str(n_files) + " traits"
+  print "Found " + str(len(assoc_dict)) + " SNPs common to all " + str(n_files) + " traits in chr" + chrom + ":" + str(start) + "-" + str(stop)
   return assoc_dict
 
-def adjust_bfs(assoc_dict,configs,n_files,in_files):
+def adjust_bfs(assoc_dict,configs,n_files,in_files,overlap):
   # adjusted bfs
   # gene correlation matrix
+  # if assuming no overlap, cor_mat is identity matrix
   cor_mat = np.identity(n_files)
-  for i in range(n_files):
-    for j in range(i+1,n_files):
-      beta1 = [assoc_dict[snp][in_files[i]][3] for snp in assoc_dict]
-      beta2 = [assoc_dict[snp][in_files[j]][3] for snp in assoc_dict]
-      cortest = stats.pearsonr(beta1,beta2)
-      if cortest[1] >= 0.01:
-        cor_mat[i,j] = 0.0
-        cor_mat[j,i] = 0.0
-      else:
-        cor_mat[i,j] = cortest[0]
-        cor_mat[j,i] = cortest[0]
-  cor_mat = np.matrix(cor_mat)
+  if overlap:
+    for i in range(n_files):
+      for j in range(i+1,n_files):
+        beta1 = [assoc_dict[snp][in_files[i]][3] for snp in assoc_dict]
+        beta2 = [assoc_dict[snp][in_files[j]][3] for snp in assoc_dict]
+        cortest = stats.pearsonr(beta1,beta2)
+        if cortest[1] >= 0.01:
+          cor_mat[i,j] = 0.0
+          cor_mat[j,i] = 0.0
+        else:
+          cor_mat[i,j] = cortest[0]
+          cor_mat[j,i] = cortest[0]
+    cor_mat = np.matrix(cor_mat)
   # configs - different adj_bf depending on configs
   # traits abcde...
   # get adj_bf for each config combo
@@ -214,6 +217,33 @@ def do_moloco(adj_bf_dict,final_configs,configs,priors):
     moloco_stats[config] = [config_dict[config],config_ppas[config]]
   return moloco_stats
 
+def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
+  # calc bf and consolidate sum stats
+  n_files = len(in_files)
+  assoc_dict = gather_assocs(in_files,chrom,start,stop)
+  if len(assoc_dict) == 0:
+    "Moving on to the next region"
+    return True
+  # single configs
+  num2alpha = dict(zip(range(0, 26), string.ascii_lowercase))
+  configs = [num2alpha[i] for i in range(n_files)]
+  for i in range(1,n_files):
+    n_causal = i + 1
+    sel = "".join([num2alpha[k] for k in [j for j in range(n_files)]])
+    configs = configs + ["".join(j) for j in list(itertools.combinations(sel,n_causal))]
+  
+  adj_bf_dict = adjust_bfs(assoc_dict,configs,n_files,in_files,overlap)
+  # all configs
+  final_configs = get_final_configs(configs,n_files)
+  moloco = do_moloco(adj_bf_dict,final_configs,configs,priors)
+  
+  out_path = out_file + "." + chrom + "." + str(start) + "." + str(stop) + ".moloco"
+  print "Great success! Writing results to " + out_path  
+  write_out = open(out_path,'wa')
+  print >>write_out, "config logBF PP"
+  for config in final_configs:
+    print >>write_out, config + " " + str(math.log(moloco[config][0])) + " " + str(moloco[config][1])
+
 
 def main():
   # chrom = 15
@@ -225,10 +255,18 @@ def main():
   print "Version 0.1"
   print "Direct complaints to: jliu@nygenome.org\n"
   args = sys.argv[1:]
+  do_bed = False
+  overlap = True
   for i in range(len(args)):
     if args[i] == "--stats":
       in_files = args[i+1]
       print "Summary statistics: " + in_files
+      in_files = in_files.split(",")
+      n_files = len(in_files)
+      for in_file in in_files:
+        if not os.path.exists(in_file):
+          print "Error: cannot find " + in_file
+          sys.exit()
     if args[i] == "--chr":
       chrom = args[i+1]
       print "Chromosome: " + chrom
@@ -245,26 +283,37 @@ def main():
     if args[i] == "--out":
       out_file = args[i+1]
       print "Output file: " + out_file
+    if args[i] == "--no-overlap":
+      overlap = False
+    if args[i] == "--bed":
+      bed_file = args[i+1]
+      do_bed = True
+      print "Bed file: " + bed_file
+      if not os.path.exists(bed_file):
+        print "Error: cannot find " + bed_file
+        sys.exit()
   print ""
-  if not 'chrom' in locals():
-    print "Error: cannot find --chr\nBummer"
-    sys.exit()
   if not 'in_files' in locals():
     print "Error: cannot find --stats\nBummer"
     sys.exit()
-  if not 'start' in locals():
+  if not 'chrom' in locals() and not 'bed_file' in locals():
+    print "Error: cannot find --chr\nBummer"
+    sys.exit()
+  if not 'start' in locals() and not 'bed_file' in locals():
     print "Error: cannot find --from\nBummer"
     sys.exit()
-  if not 'stop' in locals():
+  if not 'stop' in locals() and not 'bed_file' in locals():
     print "Error: cannot find --to\nBummer"
     sys.exit()
+  if not overlap:
+    print "Assuming no studies do not contain overlapping samples"
   if not 'priors' in locals():
     # use default priors
-    priors = [1e-4,1e-5,1e-6]
+    mu = [10**i for i in range(1,n_files)]
+    priors = [1e-4] + [1e-4 / i for i in mu]
+    print "No priors specified. Using default priors: " + ",".join([str(i) for i in priors])
   if not 'out_file' in locals():
-    out_file = "moloco.out"
-  in_files = in_files.split(",")
-  n_files = len(in_files)
+    out_file = "moloc"
   if len(priors) != n_files:
     print "Error: Number of priors must equal total number of phenotypes"
     sys.exit()
@@ -273,35 +322,25 @@ def main():
     print "Error: only one set of association statistics found. Need more"
     sys.exit()
   if n_files > 6:
-    print "Warning: MOLOCO works best for 6 or fewer traits. I mean, it will still work for more traits, but now might be a good time to go for lunch/take a long walk outside/go to bed"
+    print "Warning: MOLOCO works best for 6 or fewer traits. I mean, it will still work for more traits, but now might be a good time to go for lunch/take a long walk outside/evaluate life choices"
   
-  # calc bf and consolidate sum stats
-  assoc_dict = gather_assocs(in_files,chrom,start,stop)
-  # single configs
-  num2alpha = dict(zip(range(0, 26), string.ascii_lowercase))
-  configs = [num2alpha[i] for i in range(n_files)]
-  for i in range(1,n_files):
-    n_causal = i + 1
-    sel = "".join([num2alpha[k] for k in [j for j in range(n_files)]])
-    configs = configs + ["".join(j) for j in list(itertools.combinations(sel,n_causal))]
-
-  adj_bf_dict = adjust_bfs(assoc_dict,configs,n_files,in_files)
-  # all configs
-  final_configs = get_final_configs(configs,n_files)
-  moloco = do_moloco(adj_bf_dict,final_configs,configs,priors)
-  
-  print "Great success! Writing results to " + out_file + ", where:"
   for i in range(n_files):
     print string.ascii_lowercase[i] + " = " + in_files[i] 
   
-  write_out = open(out_file,'wa')
-  print >>write_out, "config logBF PP"
-  for config in final_configs:
-    print >>write_out, config + " " + str(math.log(moloco[config][0])) + " " + str(moloco[config][1])
+  if do_bed:
+    if 'chrom' in locals() or 'start' in locals() or 'stop' in locals():
+      print "Found bed file. Ignoring --chr --from --to"
+    regions = [i.split() for i in open(bed_file,'r')]
+    for region in regions:
+      [chrom,start,stop] = region
+      moloc_iter(in_files,chrom,int(start),int(stop),priors,out_file,overlap)
+  else:
+    moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap)
   
   end_time = time.time()
   elapse = str(end_time - start_time)
   print "\nJob done in " + elapse + " seconds"
+
 
 if __name__ == "__main__":
   main()
