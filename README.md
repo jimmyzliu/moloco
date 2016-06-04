@@ -1,17 +1,18 @@
 # moloco
 A tool for performing multiple-trait colocalization test using GWAS summary statistics
 
-To get started:
+### Getting started
 ```
 git clone https://github.com/jimmyzliu/moloco
 ```
-Requirements:
+### Requirements
 ```
 python 2.7.3
 scipy 0.14.0
 ```
 
-To run using the example files:
+### Example
+To run on a single region using the example files:
 ```
 python moloco.py \
 --stats lung_cancer.15.gwax.assoc.gz,heart_disease.15.gwax.assoc.gz,bronchitis.15.gwax.assoc.gz \
@@ -19,15 +20,26 @@ python moloco.py \
 --from 78516053 \
 --to 80860978 \
 --priors 1e-4,1e-5,1e-6 \
---out test.out
+--out test
+```
+
+To run on multiple regions specified in ```chr15.bed```:
+```
+python moloco.py \
+--stats lung_cancer.15.gwax.assoc.gz,heart_disease.15.gwax.assoc.gz,bronchitis.15.gwax.assoc.gz \
+--bed chr15.bed \
+--priors 1e-4,1e-5,1e-6 \
+--out test
 ```
 
 The input GWAS summary files require the following columns:
 ```
 CHR SNP BP OR SE P
 ```
-```OR``` can be replaced with ```BETA``` for quantitative traits
 
+```SE``` is the standard error of the log odds ratio. ```OR``` can be replaced with ```BETA``` for quantitative traits
+
+### Output
 The output file will look something like this:
 ```
 config logBF PP
@@ -56,3 +68,6 @@ In the example above: ```a``` means there is only a signal for trait ```a```.
 ```a,bc``` means that there are signals for all three traits, one of which is shared between traits ```b``` and ```c``` and another one that is independent in trait ```a```, and so on.
 
 The second column, ```logBF``` gives the log Bayes factor for each configuration. The final column, ```PP``` is that configuration's posterior probability.
+
+### Contact
+jliu at nygenome dot org
