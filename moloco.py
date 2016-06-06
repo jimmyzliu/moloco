@@ -210,11 +210,13 @@ def do_moloco(adj_bf_dict,final_configs,configs,priors):
     right_trait_bfs = prod([priors[len(j)-1] for j in config.split(",")]) * single_bfs["".join(sorted(config.replace(",","")))]
     config_bf = left_trait_bfs - right_trait_bfs
     config_dict[config] = config_bf
-    
-  config_ppas = {config:config_dict[config]/sum(config_dict.values()) for config in final_configs}
+  
+  # add config where nothing is associated
+  config_ppas = {config:config_dict[config]/(1.0 + sum(config_dict.values())) for config in final_configs}
   moloco_stats = {}
   for config in config_dict:
     moloco_stats[config] = [config_dict[config],config_ppas[config]]
+    moloco_stats["zero"] = [1.0,1.0 - sum(config_ppas.values())]
   return moloco_stats
 
 def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
@@ -241,6 +243,7 @@ def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
   print "Great success! Writing results to " + out_path  
   write_out = open(out_path,'wa')
   print >>write_out, "config logBF PP"
+  print >>write_out, "0 0 " + str(moloco["zero"][1])
   for config in final_configs:
     print >>write_out, config + " " + str(math.log(moloco[config][0])) + " " + str(moloco[config][1])
 
