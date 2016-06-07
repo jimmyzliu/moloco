@@ -34,8 +34,8 @@ def make_sigma(cor_mat,v,w):
   for i in range(len(v)):
     for j in range(i+1,len(v)):
       c = cor_mat[i,j]
-      sigma[i,j] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j]))
-      sigma[j,i] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j]))
+      sigma[i,j] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j])) - c * math.sqrt(v[j]*w[j])
+      sigma[j,i] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j])) - c * math.sqrt(v[j]*w[j])
   return np.matrix(sigma)
 
 def is_pos_def(A):
@@ -320,7 +320,7 @@ def main():
     print "Error: cannot find --to\nBummer"
     sys.exit()
   if not overlap:
-    print "Assuming no studies do not contain overlapping samples"
+    print "Assuming studies do not contain overlapping samples"
   if not 'priors' in locals():
     # use default priors
     mu = [10**i for i in range(1,n_files)]
