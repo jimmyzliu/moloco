@@ -15,12 +15,12 @@
 %\end{abstract}
 
 \section{Introduction}
-MOLOCO is an extension of coloc \citep{Giambartolomei:2014aa}. Our approach generalizes coloc to detect colocalization among any number of traits concurrently (rather than just two) and also takes into account sample overlap between the original studies.
+MOLOCO is an extension of ``coloc" \citep{Giambartolomei:2014aa}. Our approach generalizes coloc to detect colocalization among any number of traits concurrently (rather than just two) and also takes into account sample overlap between the original studies.
 
 
 \section{Method}
 
-In this section, we describe the model used to estimate the probability that within a genomic locus across a set of traits, there is a single causal genetic variant that is shared across two or more of the traits. Our approach is a multiple-trait extension of the two-trait model described by \cite{Giambartolomei:2014aa}. We wish to estimate the posterior probability that the observed data at a locus is consistent with a particular combination (or configuration) of shared and non-shared causal variants among the traits tested. We re-iterate the approach for two traits as described in \cite{Giambartolomei:2014aa} for completeness, and also extend the approach beyond two traits. We also describe an approach to account for overlapping samples between the studied phenotypes.
+Given a genomic region and GWAS results for a set of traits, we wish to estimate the posterior probability that there are SNPs in this region associated with these traits, and whether these associations are shared between two or more of these traits. Our approach is a multiple-trait extension of the two-trait model described by \cite{Giambartolomei:2014aa}, which we re-iterate here for completeness, while also describing out extension to the model.
 
 In the simplest two-trait situation, we wish to estimate posterior probabilities for five possible configurations:
 \begin{enumerate}[start=0]
@@ -31,9 +31,9 @@ In the simplest two-trait situation, we wish to estimate posterior probabilities
   \item Causal variant associated with both traits 1 and 2 and are shared
 \end{enumerate}
 
-\noindent For three traits, there are 15 possible configurations (e.g. there are two causal variants, the first variant is shared by two of the traits and the second variant is independent in the third); for four traits, there are 52 configurations and so on.
+\noindent Note that at most, we assume there is one causal variant in this region per trait. Hence, for three traits, there can potentially be three causal variants and 15 possible configurations of how they are shared among the traits (e.g. the first variant is shared by two of the traits and the second variant is independent in the third). For four traits, there are 52 configurations and so on.
 
-For each configuration $S$ and observed data $D$, The likelihood of configuration $h$ relative to the null ($H_0$) is given by (ref - Gianbartolomei):
+For each configuration $S$ and observed data $D$, The likelihood of configuration $h$ relative to the null ($H_0$) is given by \citep{Giambartolomei:2014aa}:
 \begin{equation}
 \label{rbf_equation}
 \frac{P(H_h|D)}{P(H_0|D)} = \sum_{S \in S_h} \frac{P(D|S)}{P(D|S_0)} \times \frac{P(S)}{P(S_0)}
@@ -47,7 +47,7 @@ Bayes factors measure the relative support that a SNP is associated with a trait
 \begin{equation}
 WBF = \sqrt{1-r} \times exp \Big[\frac{Z^2}{2} r \Big]
 \end{equation}
-where $r = \frac{W}{W+V}$. We set $W = 0.1$ (ref paper here suggesting 0.1 ok?).
+where $r = \frac{W}{W+V}$. We set $W = 0.1$.
 
 For each SNP and two traits, there are four possible models that can be considered:
 \begin{enumerate}[start=0]
@@ -223,7 +223,7 @@ C_{2,1} \sqrt{V_2 V_1} & V_2 & \cdots \\
 
 \begin{equation}
 \label{bf_cor}
-BF^(m) = \frac{f(\vec{\beta}| H_m)}{f(\vec{\beta}| H_0)},
+BF^{(m)} = \frac{f(\vec{\beta}| H_m)}{f(\vec{\beta}| H_0)},
 \end{equation}
 
 \noindent where $f(\vec{\beta}| H_m)$ and $f(\vec{\beta}| H_0)$ are the probability density functions of the multivariate normal distributions described in equations \ref{alt_hyp} and \ref{null_hyp} respectively. By default, all Bayes factors are calculated using equation \ref{bf_cor} than those described in section \ref{bf_comp}.
