@@ -1,0 +1,240 @@
+
+\documentclass{article}
+\usepackage[square,sort&compress]{natbib}
+\bibliographystyle{genres}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage[a4paper, total={5.5in, 8in}]{geometry}
+\begin{document}
+\title{MOLOCO: A tool for detecting shared genetic variants across multiple phenotypes}
+\author{Jimmy Z Liu and Joseph K Pickrell}
+\maketitle
+
+%\begin{abstract}
+%Abstract
+%\end{abstract}
+
+\section{Introduction}
+MOLOCO is an extension of coloc \citep{Giambartolomei:2014aa}. Our approach generalizes coloc to detect colocalization among any number of traits concurrently (rather than just two) and also takes into account sample overlap between the original studies.
+
+
+\section{Method}
+
+In this section, we describe the model used to estimate the probability that within a genomic locus across a set of traits, there is a single causal genetic variant that is shared across two or more of the traits. Our approach is a multiple-trait extension of the two-trait model described by \cite{Giambartolomei:2014aa}. We wish to estimate the posterior probability that the observed data at a locus is consistent with a particular combination (or configuration) of shared and non-shared causal variants among the traits tested. We re-iterate the approach for two traits as described in \cite{Giambartolomei:2014aa} for completeness, and also extend the approach beyond two traits. We also describe an approach to account for overlapping samples between the studied phenotypes.
+
+In the simplest two-trait situation, we wish to estimate posterior probabilities for five possible configurations:
+\begin{enumerate}[start=0]
+  \item No variants associated with either trait
+  \item Causal variant associated with trait 1, not trait 2
+  \item Causal variant associated with trait 2, not trait 1
+  \item Causal variant associated with both traits 1 and 2 and are not shared
+  \item Causal variant associated with both traits 1 and 2 and are shared
+\end{enumerate}
+
+\noindent For three traits, there are 15 possible configurations (e.g. there are two causal variants, the first variant is shared by two of the traits and the second variant is independent in the third); for four traits, there are 52 configurations and so on.
+
+For each configuration $S$ and observed data $D$, The likelihood of configuration $h$ relative to the null ($H_0$) is given by (ref - Gianbartolomei):
+\begin{equation}
+\label{rbf_equation}
+\frac{P(H_h|D)}{P(H_0|D)} = \sum_{S \in S_h} \frac{P(D|S)}{P(D|S_0)} \times \frac{P(S)}{P(S_0)}
+\end{equation}
+
+\noindent Here, $\frac{P(D|S)}{P(D|S_0)}$ is the Bayes factor for each configuration, and $\frac{P(S)}{P(S_0)}$ is the prior probability of that configuration (see below).
+
+\subsection{Bayes factor computation}
+\label{bf_comp}
+Bayes factors measure the relative support that a SNP is associated with a trait compared with the null model of no association. Approximate bayes factors were computed from summary association statistics using the Wakefield method \citep{Wakefield:2009aa}. For each SNP, let $\hat{\beta}$ be the maximum likelihood estimate of $\beta$ (e.g. the genotypic log odds ratio for a case/control study or the regression coefficient for a quantitative trait) and $\sqrt{V}$ be the standard error of that estimate. Let the Z-score, $Z = \frac{\hat{\beta}}{\sqrt{V}}$. We set a normal prior on the true effect size $\beta_1 \sim N(0,W)$. The Wakefield approximate Bayes factor ($WBF$) for that SNP is then:
+\begin{equation}
+WBF = \sqrt{1-r} \times exp \Big[\frac{Z^2}{2} r \Big]
+\end{equation}
+where $r = \frac{W}{W+V}$. We set $W = 0.1$ (ref paper here suggesting 0.1 ok?).
+
+For each SNP and two traits, there are four possible models that can be considered:
+\begin{enumerate}[start=0]
+  \item $M_0$: The SNP is not associated with either trait
+  \item $M_1$: The SNP is associated with the first trait (but not the second)
+  \item $M_2$: The SNP is associated with the second trait (but not the first)
+  \item $M_3$: The SNP is associated with both traits
+\end{enumerate}
+
+\noindent For the three alternative models, the Bayes factors are:
+\begin{align}
+BF_1 & = WBF_1 \\
+BF_2 & = WBF_2 \\
+BF_3 & = WBF_1 \times WBF_2
+\end{align}
+
+\noindent $BF_3$ results from the assumption that the traits are independent and do not share overlapping controls. We relax this assumption later on. In general, across a set of traits $N = \big\{1,2,3...\big\}$, let $N_m \subseteq N$ be the subset of traits that share this SNP as a causal variant. The evidence to support the various combinations of $N_M$ is:
+
+\begin{equation}
+BF^{(m)} = \prod_{i \in N_m} WBF_i
+\end{equation}
+
+
+\subsection{Prior probabilities}
+For each SNP, we assign a prior probability for each of the underlying models. In the two-trait example with four models:
+\begin{enumerate}[start=0]
+  \item $\pi_0$: Prior probability that the SNP is not associated with either trait
+  \item $\pi_1$: Prior probability that the SNP is associated with the first trait (but not the second)
+  \item $\pi_2$: Prior probability that the SNP is associated with the second trait (but not the first)
+  \item $\pi_3$: Prior probability that the SNP is associated with both traits
+\end{enumerate}
+
+\noindent and $\pi_0 + \pi_1 + \pi_2 + \pi_3 = 1$. In theory, we can set a different prior for each SNP and each combination $N_m$, though in practice, we assign prior probabilities according to how many traits that SNP is associated with (and constant across SNPs). 
+
+\subsection{Configuration likelihoods}
+Using the $BF$s for each SNP and prior probabilities, we can compute the terms of equation \ref{rbf_equation} for a region with $Q$ SNPs. In the two-trait example with five possible configurations:
+
+\begin{align}
+\frac{P(H_0|D)}{P(H_0|D)} & = 1 \\
+\frac{P(H_1|D)}{P(H_0|D)} & = \pi_1 \times \sum_{j=1}^Q BF_{1j} \\
+\frac{P(H_2|D)}{P(H_0|D)} & = \pi_2 \times \sum_{j=1}^Q BF_{2j} \\
+\label{h3}
+\frac{P(H_3|D)}{P(H_0|D)} & = \pi_1 \times \pi_2 \times \sum_{j}^Q \sum_{k}^Q BF_{1j} BF_{2j} I[j \ne\ k] \\
+\frac{P(H_4|D)}{P(H_0|D)} & = \pi_{3} \times \sum_{j=1}^Q BF_{1j} BF_{2j}
+\end{align}
+
+\noindent where $I$ is an indicator function equal to 1 if $j$ and $k$ are not the same, and 0 otherwise. Equation \ref{h3} can also be written as:
+
+\begin{equation}
+\frac{P(H_3|D)}{P(H_0|D)} = \pi_1 \times \pi_2 \times \sum_{j=1}^Q BF_{1j} \sum_{j=1}^Q BF_{2j} - \bigg[\frac{\pi_1 \times \pi_2}{\pi_3} \times \frac{P(H_4|D)}{P(H_0|D)} \bigg]
+\end{equation}
+
+\noindent The likelihood of there being a set of $m$ causal associations among $M$ number of traits can be generalized as:
+
+\begin{equation}
+\frac{P(H_h|D)}{P(H_0|D)} = \prod_{i \in m} \pi^{(i)} \sum_{j=1}^Q BF_j^{(i)} - \frac{\prod_{i \in m} \pi^{(i)}}{\pi^{(1,2,...M)}} \sum_{j=1}^Q \pi^{(1,2,...M)} BF_j^{(1,2,...m)}
+\end{equation}
+
+\noindent Here, the superscripts $(i)$ above $\pi$ and $BF$ indicate the posterior probability and Bayes factor respectively that the combination of traits $i$ share a common causal variant.
+
+For example, let there be three traits (1, 2 and 3) with two independent associations. The first signal colocalizes with traits 1 and 2, while the second is an independent association with trait 3. Hence, $M = 3$, $m = \big\{(1,2),(3)\big\}$ and:
+\begin{equation}
+\frac{P(H_h|D)}{P(H_o|D)} = \pi^{(1,2)} \pi^{(3)} \sum_{j=1}^{Q} BF_j^{(1,2)} \sum_{j=1}^{(Q)} BF_j^{(3)} - \frac{\pi^{(1,2)} \pi^{(3)}}{\pi^{(1,2,3)}} \sum_{j=1}^Q \pi^{(1,2,3)} BF_j^{(1,2,3)}\\
+\end{equation}
+
+\noindent Similarly, let there be five traits (1, 2, 3, 4 and 5) with two independent associations. First one is common to traits 1, 2, 3, the second one common to traits 4 and 5. Hence, $M = 3$, $m = \big\{(1,2,3),(4,5)\}$ and:
+\begin{equation}
+\frac{P(H_h|D)}{P(H_o|D)} = \pi^{(1,2,3)} \pi^{(4,5)} \sum_{j=1}^{Q} BF_j^{(1,2,3)} \sum_{j=1}^{Q} BF_j^{(4,5)} - \frac{\pi^{(1,2,3)} \pi^{(4,5)} }{\pi^{(1,2,3,4,5)}} \sum_{j=1}^Q \pi^{(1,2,3,4,5)} BF_j^{(1,2,3,4,5)}\\
+\end{equation}
+
+Then, the posterior probability supporting configuration $h$ among $H$ possible configurations, is:
+\begin{align}
+PP_h &= P(H_h | D) \\
+&= \frac{P(H_h | D)}{\sum_{i=0}^H P(H_i)} \\
+&= \frac{\frac{P(H_h | D)}{P(H_0|D)}}{1 + \sum_{i=1}^H \frac{P(H_i|D)}{P(H_0|D)}}
+\end{align}
+
+\subsection{Accounting for overlapping samples}
+Thus far we have assumed that the phenotypes studied do not contain any overlapping individuals. In practice, individuals in some cohorts may partially or completely overlap, resulting in correlation among the SNP effect sizes. This may result in overestimates of the models that favor sharing of causal variants between the traits. To adjust SNP Bayes factors to account for this overlap, we extend the method described in \cite{Pickrell:2016aa} to more than two traits.
+
+For a given SNP and a set of $N$ traits, let $\hat{\beta}_i$ and $V_i$ be the estimated effect size and variance respectively for trait $i$, and $Z_i = \frac{\hat{\beta}_i}{\sqrt{V_i}}$. Let $C_{ij}$ be the phenotypic correlation between traits $i$ and $j$. The distributions of the effect sizes follows a multivariate normal distribution:
+
+\begin{equation}
+\begin{bmatrix}
+\hat{\beta}_1 \\
+\hat{\beta}_2 \\
+\vdots
+\end{bmatrix}
+\sim MVN \Bigg(
+\begin{bmatrix}
+\beta_1 \\
+\beta_2 \\
+\vdots
+\end{bmatrix},
+\begin{bmatrix}
+V_1 & C_{1,2} \sqrt{V_1 V_2} & \cdots \\
+C_{2,1} \sqrt{V_2 V_1} & V_2 & \cdots \\
+\vdots & \vdots & \ddots
+\end{bmatrix}
+\Bigg)
+\end{equation}
+
+\noindent We place a multivariate prior on $\beta_i$ with variance $W_i$, such that:
+
+\begin{multline}
+\begin{bmatrix}
+\beta_1 \\
+\beta_2 \\
+\vdots
+\end{bmatrix}
+\sim MVN \Bigg(
+\begin{bmatrix}
+0 \\
+0 \\
+\vdots
+\end{bmatrix}, \\
+\begin{bmatrix}
+W_1 & C_{1,2} \sqrt{(V_1 + W_1)(V_2 + W_2)} - C_{1,2} \sqrt{V_1 V_2} & \cdots \\
+C_{2,1} \sqrt{(V_2 + W_2) (V_1 + W_1)} - C_{2,1} \sqrt{V_2 V_1} & W_1 & \cdots \\
+\vdots & \vdots & \ddots
+\end{bmatrix}
+\Bigg)
+\end{multline}
+
+\noindent Using this prior, we can estimate the posterior predictive distribution of the estimated effect sizes under alternate hypotheses:
+
+\begin{equation}
+\label{alt_hyp}
+\begin{bmatrix}
+\hat{\beta}_1 \\
+\hat{\beta}_2 \\
+\vdots
+\end{bmatrix} | H_m
+\sim MVN \Bigg(
+\begin{bmatrix}
+0 \\
+0 \\
+\vdots
+\end{bmatrix},
+\begin{bmatrix}
+V_1 + W_1 & C_{1,2} \sqrt{(V_1 + W_1) (V_2 + W_2)} & \cdots \\
+C_{2,1} \sqrt{(V_2 + W_2) (V_1 + W_1)} & V_2 + W_2 & \cdots \\
+\vdots & \vdots & \ddots
+\end{bmatrix}
+\Bigg).
+\end{equation}
+
+\noindent Here, the alternate hypotheses correspond to different sets of $N_m$ traits that share an association at that SNP. In equation \ref{alt_hyp}, we set $W_i = 0.1$ if trait $i \in N_m$ and 0 otherwise. Under the null hypothesis that there is no association with any traits at this SNP:
+
+\begin{equation}
+\label{null_hyp}
+\begin{bmatrix}
+\hat{\beta}_1 \\
+\hat{\beta}_2 \\
+\vdots
+\end{bmatrix} | H_0
+\sim MVN \Bigg(
+\begin{bmatrix}
+0 \\
+0 \\
+\vdots
+\end{bmatrix},
+\begin{bmatrix}
+V_1 & C_{1,2} \sqrt{V_1 V_2} & \cdots \\
+C_{2,1} \sqrt{V_2 V_1} & V_2 & \cdots \\
+\vdots & \vdots & \ddots
+\end{bmatrix}
+\Bigg).
+\end{equation}
+
+
+\noindent For each SNP, we can then calculate the Bayes factor for each subset of traits $N_m \in N$ that share this SNP as a causal variant:
+
+\begin{equation}
+\label{bf_cor}
+BF^(m) = \frac{f(\vec{\beta}| H_m)}{f(\vec{\beta}| H_0)},
+\end{equation}
+
+\noindent where $f(\vec{\beta}| H_m)$ and $f(\vec{\beta}| H_0)$ are the probability density functions of the multivariate normal distributions described in equations \ref{alt_hyp} and \ref{null_hyp} respectively. By default, all Bayes factors are calculated using equation \ref{bf_cor} than those described in section \ref{bf_comp}.
+
+
+
+%\section{Results}
+%Results
+%\section{Discussion}
+%Discussion
+\bibliography{moloco}
+\end{document}
+
+

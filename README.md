@@ -1,5 +1,5 @@
 # moloco
-A tool for performing multiple-trait colocalization test using GWAS summary statistics
+A tool for detecting shared genetic variants across multiple phenotypes using GWAS summary statistics. For details of the method, see ```moloco.pdf```.
 
 ### Getting started
 ```
