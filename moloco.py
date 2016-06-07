@@ -34,8 +34,8 @@ def make_sigma(cor_mat,v,w):
   for i in range(len(v)):
     for j in range(i+1,len(v)):
       c = cor_mat[i,j]
-      sigma[i,j] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j])) - c * math.sqrt(v[j]*w[j])
-      sigma[j,i] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j])) - c * math.sqrt(v[j]*w[j])
+      sigma[i,j] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j]))
+      sigma[j,i] = c * math.sqrt((v[i] + w[i]) * (v[j] + w[j]))
   return np.matrix(sigma)
 
 def is_pos_def(A):
