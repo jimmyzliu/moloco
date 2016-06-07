@@ -107,7 +107,7 @@ def gather_assocs(in_files,chrom,start,stop):
   bad_snps = [snp for snp in assoc_dict if len(assoc_dict[snp]) != n_files]
   for snp in bad_snps:
     del assoc_dict[snp]
-  print "Found " + str(len(assoc_dict)) + " SNPs common to all " + str(n_files) + " traits in chr" + chrom + ":" + str(start) + "-" + str(stop)
+  print "\nFound " + str(len(assoc_dict)) + " SNPs common to all " + str(n_files) + " traits in chr" + chrom + ":" + str(start) + "-" + str(stop)
   return assoc_dict
 
 def adjust_bfs(assoc_dict,configs,n_files,in_files,overlap):
@@ -246,6 +246,17 @@ def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
   print >>write_out, "0 0 " + str(moloco["zero"][1])
   for config in final_configs:
     print >>write_out, config + " " + str(math.log(moloco[config][0])) + " " + str(moloco[config][1])
+  
+  # print out colocalization posteriors for each trait
+  for i in string.ascii_lowercase[:n_files]:
+    pp = 0.0
+    for j in moloco:
+      for k in j.split(","):
+        if len(k) > 1 and i in k:
+          pp = pp + moloco[j][1]
+    print "Probability that trait \"" + i + "\" colocalizes with at least one other trait = " + str(pp)
+  
+  return moloco
 
 
 def main():
@@ -336,9 +347,9 @@ def main():
     regions = [i.split() for i in open(bed_file,'r')]
     for region in regions:
       [chrom,start,stop] = region
-      moloc_iter(in_files,chrom,int(start),int(stop),priors,out_file,overlap)
+      moloco = moloc_iter(in_files,chrom,int(start),int(stop),priors,out_file,overlap)
   else:
-    moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap)
+    moloco = moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap)
   
   end_time = time.time()
   elapse = str(end_time - start_time)
