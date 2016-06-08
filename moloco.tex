@@ -43,7 +43,7 @@ For each configuration $S$ and observed data $D$, The likelihood of configuratio
 
 \subsection{Bayes factor computation}
 \label{bf_comp}
-Bayes factors measure the relative support that a SNP is associated with a trait compared with the null model of no association. Approximate bayes factors were computed from summary association statistics using the Wakefield method \citep{Wakefield:2009aa}. For each SNP, let $\hat{\beta}$ be the maximum likelihood estimate of $\beta$ (e.g. the genotypic log odds ratio for a case/control study or the regression coefficient for a quantitative trait) and $\sqrt{V}$ be the standard error of that estimate. Let the Z-score, $Z = \frac{\hat{\beta}}{\sqrt{V}}$. We set a normal prior on the true effect size $\beta_1 \sim N(0,W)$. The Wakefield approximate Bayes factor ($WBF$) for that SNP is then:
+Bayes factors measure the relative support that a SNP is associated with a trait compared with the null model of no association. Approximate bayes factors can be estimated from summary association statistics using the Wakefield method \citep{Wakefield:2009aa}. For each SNP, let $\hat{\beta}$ be the maximum likelihood estimate of $\beta$ (e.g. the genotypic log odds ratio for a case/control study or the regression coefficient for a quantitative trait) and $\sqrt{V}$ be the standard error of that estimate. Let the Z-score, $Z = \frac{\hat{\beta}}{\sqrt{V}}$. We set a normal prior on the true effect size $\beta_1 \sim N(0,W)$. The Wakefield approximate Bayes factor ($WBF$) for that SNP is then:
 \begin{equation}
 WBF = \sqrt{1-r} \times exp \Big[\frac{Z^2}{2} r \Big]
 \end{equation}
@@ -83,7 +83,7 @@ For each SNP, we assign a prior probability for each of the underlying models. I
 \noindent and $\pi_0 + \pi_1 + \pi_2 + \pi_3 = 1$. In theory, we can set a different prior for each SNP and each combination $N_m$, though in practice, we assign prior probabilities according to how many traits that SNP is associated with (and constant across SNPs). 
 
 \subsection{Configuration likelihoods}
-Using the $BF$s for each SNP and prior probabilities, we can compute the terms of equation \ref{rbf_equation} for a region with $Q$ SNPs. In the two-trait example with five possible configurations:
+Using the $BF$s for each SNP and prior probabilities, we can compute the terms of equation \ref{rbf_equation} for a region with $Q$ SNPs. In the two-trait example with five possible configurations \citep{Giambartolomei:2014aa}:
 
 \begin{align}
 \frac{P(H_0|D)}{P(H_0|D)} & = 1 \\
@@ -118,7 +118,7 @@ For example, let there be three traits (1, 2 and 3) with two independent associa
 \frac{P(H_h|D)}{P(H_o|D)} = \pi^{(1,2,3)} \pi^{(4,5)} \sum_{j=1}^{Q} BF_j^{(1,2,3)} \sum_{j=1}^{Q} BF_j^{(4,5)} - \frac{\pi^{(1,2,3)} \pi^{(4,5)} }{\pi^{(1,2,3,4,5)}} \sum_{j=1}^Q \pi^{(1,2,3,4,5)} BF_j^{(1,2,3,4,5)}\\
 \end{equation}
 
-Then, the posterior probability supporting configuration $h$ among $H$ possible configurations, is:
+Then, the posterior probability supporting configuration $h$ among $H$ possible configurations, is \citep{Giambartolomei:2014aa}:
 \begin{align}
 PP_h &= P(H_h | D) \\
 &= \frac{P(H_h | D)}{\sum_{i=0}^H P(H_i)} \\
@@ -226,7 +226,7 @@ C_{2,1} \sqrt{V_2 V_1} & V_2 & \cdots \\
 BF^{(m)} = \frac{f(\vec{\beta}| H_m)}{f(\vec{\beta}| H_0)},
 \end{equation}
 
-\noindent where $f(\vec{\beta}| H_m)$ and $f(\vec{\beta}| H_0)$ are the probability density functions of the multivariate normal distributions described in equations \ref{alt_hyp} and \ref{null_hyp} respectively. By default, all Bayes factors are calculated using equation \ref{bf_cor} than those described in section \ref{bf_comp}.
+\noindent where $f(\vec{\beta}| H_m)$ and $f(\vec{\beta}| H_0)$ are the probability density functions of the multivariate normal distributions described in equations \ref{alt_hyp} and \ref{null_hyp} respectively. $C_{ij}$ is the correlation coefficient among the effect sizes of traits $i$ and $j$. By default, all Bayes factors are calculated using equation \ref{bf_cor} rather than those described in section \ref{bf_comp}.
 
 
 

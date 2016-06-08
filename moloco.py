@@ -219,7 +219,7 @@ def do_moloco(adj_bf_dict,final_configs,configs,priors):
     moloco_stats["zero"] = [1.0,1.0 - sum(config_ppas.values())]
   return moloco_stats
 
-def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
+def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap,print_sum = False):
   # calc bf and consolidate sum stats
   n_files = len(in_files)
   assoc_dict = gather_assocs(in_files,chrom,start,stop)
@@ -247,6 +247,20 @@ def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
   for config in final_configs:
     print >>write_out, config + " " + str(math.log(moloco[config][0])) + " " + str(moloco[config][1])
   
+  if print_sum:
+    # Print summary stats
+    print "Writting summary statistics to " + out_file + "." + chrom + "." + str(start) + "." + str(stop) + ".stats"
+    write_sum = open(out_file + "." + chrom + "." + str(start) + "." + str(stop) + ".stats",'wa')
+    print >>write_sum, "SNP CHR BP " + " ".join(["logBF_" + config for config in configs])
+    for snp in assoc_dict:
+      trait = assoc_dict[snp].keys()[0]
+      print >>write_sum, assoc_dict[snp][trait][0] + " " + assoc_dict[snp][trait][1] + " " + assoc_dict[snp][trait][2],
+      for config in configs:
+        print >>write_sum, str(math.log(adj_bf_dict[config][snp])),
+      print >>write_sum, ""
+    write_sum.close()
+  
+  print ""
   # print out colocalization posteriors for each trait
   for i in string.ascii_lowercase[:n_files]:
     pp = 0.0
@@ -256,6 +270,7 @@ def moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap):
           pp = pp + moloco[j][1]
     print "Probability that trait \"" + i + "\" colocalizes with at least one other trait = " + str(pp)
   
+  print ""
   return moloco
 
 
@@ -271,6 +286,7 @@ def main():
   args = sys.argv[1:]
   do_bed = False
   overlap = True
+  print_sum = False
   for i in range(len(args)):
     if args[i] == "--stats":
       in_files = args[i+1]
@@ -306,6 +322,9 @@ def main():
       if not os.path.exists(bed_file):
         print "Error: cannot find " + bed_file
         sys.exit()
+    if args[i] == "--print-sum":
+      print "Print summary statistics"
+      print_sum = True
   print ""
   if not 'in_files' in locals():
     print "Error: cannot find --stats\nBummer"
@@ -347,9 +366,9 @@ def main():
     regions = [i.split() for i in open(bed_file,'r')]
     for region in regions:
       [chrom,start,stop] = region
-      moloco = moloc_iter(in_files,chrom,int(start),int(stop),priors,out_file,overlap)
+      moloco = moloc_iter(in_files,chrom,int(start),int(stop),priors,out_file,overlap,print_sum)
   else:
-    moloco = moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap)
+    moloco = moloc_iter(in_files,chrom,start,stop,priors,out_file,overlap,print_sum)
   
   end_time = time.time()
   elapse = str(end_time - start_time)
