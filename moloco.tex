@@ -6,7 +6,7 @@
 \usepackage{enumitem}
 \usepackage[a4paper, total={5.5in, 8in}]{geometry}
 \begin{document}
-\title{MOLOCO: A tool for detecting shared genetic variants across multiple phenotypes}
+\title{MOLOCO: A tool for detecting shared genetic variants associated with multiple phenotypes}
 \author{Jimmy Z Liu and Joseph K Pickrell}
 \maketitle
 
@@ -20,7 +20,7 @@ MOLOCO is an extension of ``coloc" \citep{Giambartolomei:2014aa}. Our approach g
 
 \section{Method}
 
-Given a genomic region and GWAS results for a set of traits, we wish to estimate the posterior probability that there are SNPs in this region associated with these traits, and whether these associations are shared between two or more of these traits. Our approach is a multiple-trait extension of the two-trait model described by \cite{Giambartolomei:2014aa}, which we re-iterate here for completeness, while also describing out extension to the model.
+Given a genomic region and GWAS summary results for a set of traits, we wish to estimate a posterior probability of there being SNPs associated with one or more of these traits, and whether any of these SNPs are shared. Our approach is a multiple-trait extension of the two-trait model described by \cite{Giambartolomei:2014aa}, which we re-iterate here for completeness, and then generalize to a model with any number of traits.
 
 In the simplest two-trait situation, we wish to estimate posterior probabilities for five possible configurations:
 \begin{enumerate}[start=0]
@@ -195,7 +195,7 @@ C_{2,1} \sqrt{(V_2 + W_2) (V_1 + W_1)} & V_2 + W_2 & \cdots \\
 \Bigg).
 \end{equation}
 
-\noindent Here, the alternate hypotheses correspond to different sets of $N_m$ traits that share an association at that SNP. In equation \ref{alt_hyp}, we set $W_i = 0.1$ if trait $i \in N_m$ and 0 otherwise. Under the null hypothesis that there is no association with any traits at this SNP:
+\noindent Here, the alternate hypotheses correspond to different sets of $N_m$ traits that share an association at that SNP. In equation \ref{alt_hyp}, we set $W_i = 0.1$ if trait $i \in N_m$ and 0 otherwise. $C_{ij}$ is the correlation coefficient among the effect sizes of traits $i$ and $j$. Under the null hypothesis that there is no association with any traits at this SNP:
 
 \begin{equation}
 \label{null_hyp}
@@ -226,7 +226,7 @@ C_{2,1} \sqrt{V_2 V_1} & V_2 & \cdots \\
 BF^{(m)} = \frac{f(\vec{\beta}| H_m)}{f(\vec{\beta}| H_0)},
 \end{equation}
 
-\noindent where $f(\vec{\beta}| H_m)$ and $f(\vec{\beta}| H_0)$ are the probability density functions of the multivariate normal distributions described in equations \ref{alt_hyp} and \ref{null_hyp} respectively. $C_{ij}$ is the correlation coefficient among the effect sizes of traits $i$ and $j$. By default, all Bayes factors are calculated using equation \ref{bf_cor} rather than those described in section \ref{bf_comp}.
+\noindent where $f(\vec{\beta}| H_m)$ and $f(\vec{\beta}| H_0)$ are the probability density functions of the multivariate normal distributions described in equations \ref{alt_hyp} and \ref{null_hyp} respectively. By default, all Bayes factors are calculated using equation \ref{bf_cor} rather than those described in section \ref{bf_comp}. When $C = 0$, the two methods produce identical Bayes factors.
 
 
 
