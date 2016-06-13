@@ -22,6 +22,8 @@ import sys
 import time
 from scipy import stats
 
+__version__ = '0.1'
+
 def wakefield_bf(beta,se,p,w = 0.1):
   # calculate Wakefield bayes factor
   z = stats.norm.isf(p/2)
@@ -63,6 +65,13 @@ def get_psd(A):
     #detA = np.linalg.det(A)
   return A
 
+def is_num(x):
+  try:
+    float(x)
+  except:
+    return False
+  return True
+
 def gather_assocs(in_files,chrom,start,stop):
   # only include snps common to all traits
   # calculate wakefield bf
@@ -93,6 +102,15 @@ def gather_assocs(in_files,chrom,start,stop):
     
     for i in f:
       line = i.split()
+      # ignore NAs?
+      if not is_num(line[p_i]) or not is_num(line[se_i]):
+        continue
+      if is_odds:
+        if not is_num(line[or_i]):
+          continue
+      if not is_odds:
+        if not is_num(line[beta_i]):
+          continue
       if line[chr_i] != chrom:
         continue
       if int(line[bp_i]) >= start and int(line[bp_i]) <= stop:
@@ -312,7 +330,7 @@ def main():
       priors = [float(j) for j in priors]
     if args[i] == "--out":
       out_file = args[i+1]
-      print "Output file: " + out_file
+      print "Output prefix: " + out_file
     if args[i] == "--no-overlap":
       overlap = False
     if args[i] == "--bed":
