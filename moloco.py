@@ -99,7 +99,6 @@ def gather_assocs(in_files,chrom,start,stop):
     if "BETA" in header:
       is_odds = False
       beta_i = header.index("BETA")
-    
     for i in f:
       line = i.split()
       # ignore NAs?
@@ -117,6 +116,8 @@ def gather_assocs(in_files,chrom,start,stop):
         [snp,chrom,bp,se,p] = [line[j] for j in [snp_i,chr_i,bp_i,se_i,p_i]]
         if is_odds:
           beta = math.log(float(line[or_i]))
+        else:
+          beta = float(line[beta_i])
         bf = wakefield_bf(float(beta),float(se),float(p))
         if not snp in assoc_dict:
           assoc_dict[snp] = {file:[snp,chrom,bp,float(beta),float(se),float(p),bf]}
@@ -157,6 +158,8 @@ def adjust_bfs(assoc_dict,configs,n_files,in_files,overlap):
     means = np.array([0.0 for i in range(n_files)])
     w_0 = np.array([0.0 for i in range(n_files)])
     sigma_h0 = make_sigma(cor_mat,v,w_0)
+    if not is_pos_def(sigma_h0):
+      sigma_h0 = get_psd(sigma_h0)
     #
     for config in configs:
       w = [0.0 for i in range(n_files)]
@@ -165,7 +168,14 @@ def adjust_bfs(assoc_dict,configs,n_files,in_files,overlap):
       sigma_h1 = make_sigma(cor_mat,v,w)
       if not is_pos_def(sigma_h1):
         sigma_h1 = get_psd(sigma_h1)
-      adj_bf = stats.multivariate_normal.pdf(betas, means, sigma_h1) / stats.multivariate_normal.pdf(betas,means,sigma_h0)
+      # in case denominator is zero
+      mvn_numer = stats.multivariate_normal.pdf(betas, means, sigma_h1)
+      mvn_denom = stats.multivariate_normal.pdf(betas,means,sigma_h0)
+      if mvn_denom == 0:
+        adj_bf = 1.0
+      else:
+        adj_bf = mvn_numer/mvn_denom
+      #adj_bf = stats.multivariate_normal.pdf(betas, means, sigma_h1) / stats.multivariate_normal.pdf(betas,means,sigma_h0)
       adj_bf_dict[config][snp] = adj_bf
   return adj_bf_dict
 
